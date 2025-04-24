@@ -49,3 +49,4 @@ pytest_cache/
 # Ignore misc and data folders
 misc/
 data/raw/
+plots/
