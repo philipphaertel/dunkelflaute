@@ -1,0 +1,50 @@
+# Ignore node_modules folder
+node_modules/
+
+# Ignore log files
+*.log
+logs/
+
+# Ignore environment files
+.env
+.env.local
+.env.*.local
+
+# Ignore build outputs
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+dunkelflaute/__pycache__/
+
+# Ignore virtual environments
+venv/
+.env/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE specific files
+.vscode/
+.idea/
+*.iml
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore test coverage reports
+htmlcov/
+.coverage
+.tox/
+.nox/
+.cache/
+pytest_cache/
+
+# Ignore misc
+misc/*
