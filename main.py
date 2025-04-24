@@ -1,6 +1,10 @@
 from dunkelflaute.core import get_total_production_df, get_dunkelflaute_results
 from dunkelflaute.utils import create_ts_from_raw, load_df
-from dunkelflaute.visualize import plot_dunkelflaute_events, plot_period_ts_data
+from dunkelflaute.visualize import (
+    plot_dunkelflaute_events,
+    plot_period_ts_data,
+    plot_period_solar_wind_performance,
+)
 
 
 def main():
@@ -27,7 +31,7 @@ def main():
     # 2006-01-01 09:00:00,0.475175,0.0659112
     # 2006-01-01 10:00:00,0.397465,0.0937201
     # ...
-    df = load_df("data/wind_solar_data.csv")
+    df_wind_solar = load_df("data/wind_solar_data.csv")
 
     # Define configuration parameters
 
@@ -54,17 +58,24 @@ def main():
 
     # Calculate total production
     cap_dem_ratio = 1.2  # ratio of wind and solar capacity (combined) to demand capacity, e.g., 1.5 means 50% more capacity than demand, default is 1.0
-    total_production_df = get_total_production_df(df, cap_mix_range, cap_dem_ratio)
+    df_total_production = get_total_production_df(
+        df_wind_solar, cap_mix_range, cap_dem_ratio
+    )
 
     # Analyze dunkelflaute periods
-    results = get_dunkelflaute_results(total_production_df, thresholds, period_lengths)
+    results = get_dunkelflaute_results(df_total_production, thresholds, period_lengths)
 
     # Visualize results
     plot_dunkelflaute_events(
-        results, total_production_df, cap_mix_range, thresholds, period_lengths
+        results, df_total_production, cap_mix_range, thresholds, period_lengths
     )
+    # Plot the dunkelflaute events for a given capacity mix, threshold, period length of interest
+    plot_period_ts_data(results, df_total_production, 0.5, 0.25, 7 * 24)
 
-    plot_period_ts_data(results, total_production_df, 0.5, 0.25, 7 * 24)
+    # Plot the solar and wind performance for a given capacity mix, threshold, period length of interest
+    plot_period_solar_wind_performance(
+        results, df_wind_solar, 0.75, 0.35, [7 * 24, 10 * 24, 14 * 24]
+    )
 
 
 if __name__ == "__main__":

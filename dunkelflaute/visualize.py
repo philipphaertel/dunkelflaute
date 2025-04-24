@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import os
+import pandas as pd
 
 
 def create_new_figure():
@@ -120,6 +121,7 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
         df_total[f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"],
         label="Total Production",
     )
+    plt.axhline(threshold, color="black", linestyle="--", label="Threshold")
     plt.title(
         f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}, Threshold: {threshold}, Min. Period Length: {int(period_len/24)} days"
     )
@@ -130,7 +132,8 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
     plt.tight_layout()
     save_figure(fig, "period_ts_data.svg")
 
-    # Save figure for each period
+    # Save figure for each period, plot only the period + and - 3 days
+    # around the start and end of the period
     for i, (start, end) in enumerate(
         results[threshold][period_len][f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"]
     ):
@@ -141,6 +144,17 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
             df_total[f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"],
             label="Total Production",
         )
+        plt.axhline(threshold, color="black", linestyle="--", label="Threshold")
+
+        plt.text(
+            start + (end - start) / 2,
+            threshold + 0.01,
+            f"{int((end - start).total_seconds() / 3600)} hours ({(end - start).total_seconds() / 3600 / 24:2.1f} days)",
+            ha="center",
+            va="bottom",
+        )
+        plt.xlim(start - pd.Timedelta(days=3), end + pd.Timedelta(days=3))
+
         plt.title(
             f"Dunkelflaute Event {i+1} for Wind: {cap_mix} Solar: {1-cap_mix}, Threshold: {threshold}, Min. Period Length: {int(period_len/24)} days"
         )
@@ -150,3 +164,55 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
         plt.grid()
         plt.tight_layout()
         save_figure(fig, f"period_ts_data_{i+1}.svg")
+
+
+def plot_period_solar_wind_performance(
+    results, df_wind_solar, cap_mix, threshold, period_len
+):
+    # check if period_len is an int or a list. convert it to a list
+    if not isinstance(period_len, list):
+        period_len = [period_len]
+
+    fig = create_new_figure()
+    # get the mean production for the total time horizon
+    mean_wind_total = df_wind_solar["wind"].mean()
+    mean_solar_total = df_wind_solar["solar"].mean()
+
+    colors = ["red", "blue", "green", "orange", "purple"]
+
+    for i, plen in enumerate(period_len):
+        lbl = f"Period length: {int(plen/24)} days"
+        for start, end in results[threshold][plen][
+            f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"
+        ]:
+            # get the mean production for the period
+            mean_wind = df_wind_solar["wind"].loc[start:end].mean()
+            mean_solar = df_wind_solar["solar"].loc[start:end].mean()
+
+            plt.scatter(
+                mean_solar / mean_solar_total,
+                mean_wind / mean_wind_total,
+                alpha=0.3,
+                color=colors[i],
+                label=lbl,
+            )
+            lbl = None
+
+    plt.axhline(
+        1, color="black", linestyle="--", label="Wind/solar reference performance"
+    )
+    plt.axvline(1, color="black", linestyle="--")
+
+    plt.title(
+        f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}, Threshold: {threshold}"
+    )
+    plt.xlabel("Solar performance relative to reference performance (mean)")
+    plt.ylabel("Wind performance relative to reference performance (mean)")
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+
+    save_figure(
+        fig,
+        f"period_solar_wind_performance_{cap_mix}_{threshold}_{period_len}.svg",
+    )
