@@ -4,6 +4,9 @@ import pandas as pd
 
 
 def create_new_figure():
+    """
+    Create a new figure with the specified size and DPI.
+    """
     height = 13.8  # cm, for ppt
     width = 31.2  # cm, for ppt
 
@@ -15,6 +18,10 @@ def create_new_figure():
 
 
 def save_figure(fig, filename):
+    """
+    Save the figure to a file with the specified filename.
+    The file is saved in the 'plots' directory.
+    """
     plot_dir = "plots"
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
@@ -32,6 +39,12 @@ def save_figure(fig, filename):
 def plot_dunkelflaute_events(
     results, df_total, cap_mix_range, thresholds, period_lenghts
 ):
+    """
+    Plot the dunkelflaute events for different capacity mixes and thresholds.
+    The plot shows the number of dunkelflaute events for each capacity mix and threshold
+    for different period lengths.
+    The plots are saved as a SVG file.
+    """
     no_years = len(df_total.index.year.unique())
 
     for cap_mix in cap_mix_range:
@@ -111,6 +124,13 @@ def plot_dunkelflaute_events(
 
 
 def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
+    """
+    Plot the time series data for a given capacity mix, threshold, and period length.
+    The plot shows the total production and the dunkelflaute events
+    (periods below the threshold) highlighted in red.
+    Total plot and individual plots for each period are saved.
+    The plots are saved as a SVG file.
+    """
     fig = create_new_figure()
     for start, end in results[threshold][period_len][
         f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"
@@ -169,7 +189,16 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
 def plot_period_solar_wind_performance(
     results, df_wind_solar, cap_mix, threshold, period_len
 ):
-    # check if period_len is an int or a list. convert it to a list
+    """
+    Plot the performance of wind and solar production during dunkelflaute events
+    for a given capacity mix, threshold, and period length.
+    The performance is defined as the mean production during the dunkelflaute event
+    divided by the mean production for the total time horizon.
+    The plot shows the performance of wind and solar production
+    during dunkelflaute events for different period lengths.
+    The plot is saved as a SVG file.
+    """
+
     if not isinstance(period_len, list):
         period_len = [period_len]
 
