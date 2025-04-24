@@ -46,6 +46,6 @@ htmlcov/
 .cache/
 pytest_cache/
 
-# Ignore misc
-misc/*
+# Ignore misc and data folders
+misc/
 data/raw/
