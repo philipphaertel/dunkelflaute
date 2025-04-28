@@ -1,9 +1,10 @@
 from dunkelflaute.core import get_total_production_df, get_dunkelflaute_results
-from dunkelflaute.utils import create_ts_from_raw, load_df
+from dunkelflaute.utils import create_ts_from_raw, load_df, get_number_of_years
 from dunkelflaute.visualize import (
     plot_dunkelflaute_events,
     plot_period_ts_data,
     plot_period_solar_wind_performance,
+    plot_dunkelflaute_contour,
 )
 
 
@@ -54,7 +55,11 @@ def main():
         0.45,
         0.5,
     ]  # list of thresholds for production
-    period_lengths = [24 * t for t in range(3, 16)]  # list of period lengths in hours
+    period_lengths = [
+        12 * t for t in range(1, 16 * 2 + 1)
+    ]  # list of period lengths in hours
+
+    split_long_periods = False  # whether to split long periods into shorter ones
 
     # Calculate total production
     cap_dem_ratio = 1.2  # ratio of wind and solar capacity (combined) to demand capacity, e.g., 1.5 means 50% more capacity than demand, default is 1.0
@@ -62,20 +67,29 @@ def main():
         df_wind_solar, cap_mix_range, cap_dem_ratio
     )
 
+    no_years = get_number_of_years(df_total_production)  # number of years in the data
+
     # Analyze dunkelflaute periods
-    results = get_dunkelflaute_results(df_total_production, thresholds, period_lengths)
+    results = get_dunkelflaute_results(
+        df_total_production,
+        thresholds,
+        period_lengths,
+        split_long_periods,
+    )
 
     # Visualize results
     plot_dunkelflaute_events(
         results, df_total_production, cap_mix_range, thresholds, period_lengths
     )
     # Plot the dunkelflaute events for a given capacity mix, threshold, period length of interest
-    plot_period_ts_data(results, df_total_production, 0.5, 0.25, 7 * 24)
+    plot_period_ts_data(results, df_total_production, 0.5, 0.35, 7 * 24)
 
     # Plot the solar and wind performance for a given capacity mix, threshold, period length of interest
     plot_period_solar_wind_performance(
         results, df_wind_solar, 0.75, 0.35, [7 * 24, 10 * 24, 14 * 24]
     )
+
+    plot_dunkelflaute_contour(results, 0.5, period_lengths, thresholds, no_years)
 
 
 if __name__ == "__main__":
