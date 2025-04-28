@@ -7,6 +7,7 @@ Dunkelflaute is a Python module designed to analyze and visualize periods of low
 - Calculate total renewable energy production from wind and solar sources.
 - Identify periods of low production (dunkelflaute) based on customizable thresholds and period lengths.
 - Generate visualizations to analyze the frequency and duration of dunkelflaute events.
+- Contour plots to visualize the frequency of dunkelflaute events across thresholds and persistence times.
 
 ## Installation
 
@@ -28,15 +29,34 @@ from dunkelflaute.utils import create_ts_from_raw
 df = create_ts_from_raw("data/raw", range(2006, 2013))
 
 # Define capacity mix and thresholds
-cap_mix_range = [0.25, 0.5, 0.75]
-thresholds = [0.05, 0.1, 0.15]
-period_lengths = [24 * t for t in range(1, 15)]
+cap_mix_range = [0.25, 0.5, 0.75]  # Wind and solar capacity mix ratios
+thresholds = [0.05, 0.1, 0.15]  # Capacity factor thresholds
+period_lengths = [24 * t for t in range(1, 15)]  # Period lengths in hours
 
 # Calculate total production
 df_total = get_total_production_df(df, cap_mix_range)
 
 # Get dunkelflaute results
 results = get_dunkelflaute_results(df_total, thresholds, period_lengths)
+```
+
+## Visualizations
+
+The Dunkelflaute module includes tools to visualize the results:
+
+1. **Scatter Plot of Solar vs. Wind Performance**:
+   - Visualize the relative performance of wind and solar during dunkelflaute events.
+
+2. **Contour Plot of Dunkelflaute Frequency**:
+   - Generate a contour plot showing the frequency of dunkelflaute events across thresholds and persistence times.
+
+Example code for generating a contour plot:
+
+```python
+from dunkelflaute.visualize import plot_dunkelflaute_contour
+
+# Generate a contour plot
+plot_dunkelflaute_contour(results, cap_mix=0.5, period_lengths=period_lengths, thresholds=thresholds, no_years=7)
 ```
 
 ## Jupyter Notebook Guide
