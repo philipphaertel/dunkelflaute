@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
+from matplotlib.colors import BoundaryNorm
 import os
 import pandas as pd
+import numpy as np
 
 
 def create_new_figure():
@@ -40,8 +42,8 @@ def plot_dunkelflaute_events(
     results, df_total, cap_mix_range, thresholds, period_lenghts
 ):
     """
-    Plot the dunkelflaute events for different capacity mixes and thresholds.
-    The plot shows the number of dunkelflaute events for each capacity mix and threshold
+    Plot the dunkelflaute events for different capacity mixes and capacity factor thresholds.
+    The plot shows the number of dunkelflaute events for each capacity mix and capacity factor threshold
     for different period lengths.
     The plots are saved as a SVG file.
     """
@@ -66,15 +68,15 @@ def plot_dunkelflaute_events(
             plt.plot(
                 period_lenghts_days,
                 dunkelflaute_counts,
-                label=f"Threshold: {threshold}",
+                label=f"Cap. factor threshold: {threshold}",
                 marker="o",
                 markersize=3,
             )
-        plt.title(f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}")
+        plt.title(f"Dunkelflaute events for Wind: {cap_mix} Solar: {1-cap_mix}")
         plt.xlabel("Minimum duration (days)")
         plt.xticks(period_lenghts_days)
         plt.xlim(period_lenghts_days[0], period_lenghts_days[-1])
-        plt.ylabel("Number of observed Dunkelflaute events (# of periods per year)")
+        plt.ylabel("Number of observed Dunkelflaute events (# of events per year)")
         plt.legend()
         plt.grid()
         save_figure(fig, f"dunkelflaute_events_{cap_mix}.svg")
@@ -101,7 +103,7 @@ def plot_dunkelflaute_events(
             plt.plot(
                 period_lenghts_days,
                 dunkelflaute_counts,
-                label=f"Threshold: {threshold}",
+                label=f"Cap. factor threshold: {threshold}",
                 marker="o",
                 markersize=3,
             )
@@ -109,9 +111,8 @@ def plot_dunkelflaute_events(
 
         plt.title(f"Wind: {cap_mix} Solar: {1-cap_mix}")
         plt.xlabel("Minimum duration (days)")
-        plt.xticks(period_lenghts_days)
         plt.xlim(period_lenghts_days[0], period_lenghts_days[-1])
-        plt.ylabel("Number of observed Dunkelflaute events (# of periods per year)")
+        plt.ylabel("Number of observed Dunkelflaute events (# of events per year)")
         plt.legend()
         plt.grid()
 
@@ -125,9 +126,9 @@ def plot_dunkelflaute_events(
 
 def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
     """
-    Plot the time series data for a given capacity mix, threshold, and period length.
+    Plot the time series data for a given capacity mix, cap. factor threshold, and period length.
     The plot shows the total production and the dunkelflaute events
-    (periods below the threshold) highlighted in red.
+    (periods below the cap. factor threshold) highlighted in red.
     Total plot and individual plots for each period are saved.
     The plots are saved as a SVG file.
     """
@@ -141,9 +142,11 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
         df_total[f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"],
         label="Total Production",
     )
-    plt.axhline(threshold, color="black", linestyle="--", label="Threshold")
+    plt.axhline(
+        threshold, color="black", linestyle="--", label="Capacity factor threshold"
+    )
     plt.title(
-        f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}, Threshold: {threshold}, Min. Period Length: {int(period_len/24)} days"
+        f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}, Cap. factor threshold: {threshold}, Min. Period Length: {int(period_len/24)} days"
     )
     plt.xlabel("Date")
     plt.ylabel("Production")
@@ -152,8 +155,6 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
     plt.tight_layout()
     save_figure(fig, "period_ts_data.svg")
 
-    # Save figure for each period, plot only the period + and - 3 days
-    # around the start and end of the period
     for i, (start, end) in enumerate(
         results[threshold][period_len][f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"]
     ):
@@ -164,7 +165,9 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
             df_total[f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"],
             label="Total Production",
         )
-        plt.axhline(threshold, color="black", linestyle="--", label="Threshold")
+        plt.axhline(
+            threshold, color="black", linestyle="--", label="Capacity factor threshold"
+        )
 
         plt.text(
             start + (end - start) / 2,
@@ -176,7 +179,7 @@ def plot_period_ts_data(results, df_total, cap_mix, threshold, period_len):
         plt.xlim(start - pd.Timedelta(days=3), end + pd.Timedelta(days=3))
 
         plt.title(
-            f"Dunkelflaute Event {i+1} for Wind: {cap_mix} Solar: {1-cap_mix}, Threshold: {threshold}, Min. Period Length: {int(period_len/24)} days"
+            f"Dunkelflaute Event {i+1} for Wind: {cap_mix} Solar: {1-cap_mix}, Cap. factor threshold: {threshold}, Min. Period Length: {int(period_len/24)} days"
         )
         plt.xlabel("Date")
         plt.ylabel("Production")
@@ -191,7 +194,7 @@ def plot_period_solar_wind_performance(
 ):
     """
     Plot the performance of wind and solar production during dunkelflaute events
-    for a given capacity mix, threshold, and period length.
+    for a given capacity mix, cap. factor threshold, and period length.
     The performance is defined as the mean production during the dunkelflaute event
     divided by the mean production for the total time horizon.
     The plot shows the performance of wind and solar production
@@ -208,12 +211,14 @@ def plot_period_solar_wind_performance(
     mean_solar_total = df_wind_solar["solar"].mean()
 
     colors = ["red", "blue", "green", "orange", "purple"]
-
+    size_min = 30
+    size_max = 250
+    size_range = (size_max - size_min) / max(period_len)
     for i, plen in enumerate(period_len):
         lbl = f"Period length: {int(plen/24)} days"
-        for start, end in results[threshold][plen][
-            f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"
-        ]:
+        for j, (start, end) in enumerate(
+            results[threshold][plen][f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"]
+        ):
             # get the mean production for the period
             mean_wind = df_wind_solar["wind"].loc[start:end].mean()
             mean_solar = df_wind_solar["solar"].loc[start:end].mean()
@@ -221,9 +226,20 @@ def plot_period_solar_wind_performance(
             plt.scatter(
                 mean_solar / mean_solar_total,
                 mean_wind / mean_wind_total,
-                alpha=0.3,
+                alpha=0.15,
+                s=size_min + size_range * plen,
                 color=colors[i],
                 label=lbl,
+            )
+            # Write period id on the plot in the correspinding color
+            plt.text(
+                mean_solar / mean_solar_total,
+                mean_wind / mean_wind_total,
+                f"{j}",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color=colors[i],
             )
             lbl = None
 
@@ -233,7 +249,7 @@ def plot_period_solar_wind_performance(
     plt.axvline(1, color="black", linestyle="--")
 
     plt.title(
-        f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}, Threshold: {threshold}"
+        f"Dunkelflaute Events for Wind: {cap_mix} Solar: {1-cap_mix}, Cap. factor threshold: {threshold}"
     )
     plt.xlabel("Solar performance relative to reference performance (mean)")
     plt.ylabel("Wind performance relative to reference performance (mean)")
