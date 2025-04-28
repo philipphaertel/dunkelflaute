@@ -62,6 +62,18 @@ def load_df(file_path):
     return df
 
 
+def get_number_of_years(df):
+    """
+    Get the number of years in a dataframe
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("df should be a pandas dataframe")
+    if df.empty:
+        raise ValueError("df should not be empty")
+
+    return len(df.index.year.unique())
+
+
 def validate_capacity_mix(cap_mix):
     if not isinstance(cap_mix, list):
         raise ValueError("cap_mix should be a list")
