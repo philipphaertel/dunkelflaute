@@ -30,7 +30,9 @@ def get_total_production_df(df, cap_mix: list = [0.5], cap_dem_ratio: float = 1.
     return df_total
 
 
-def find_fuzzy_periods(df, threshold=0.1, period_len=7 * 24, tol=0):
+def find_fuzzy_periods(
+    df, threshold=0.1, period_len=7 * 24, tol=0, split_long_periods=True
+):
     """
     Find periods in a dataframe where the values are below a given threshold
     for a certain period length. The periods are defined as consecutive
@@ -87,6 +89,26 @@ def find_fuzzy_periods(df, threshold=0.1, period_len=7 * 24, tol=0):
             & (group_stats["duration"] >= period_len)
         ]
         periods = list(zip(valid_groups["start"], valid_groups["end"]))
+
+        # Optionally split long periods (if split_long_periods is True)
+        # The idea is to split long periods into smaller ones if they exceed the period length
+        # Only split if each period is longer than the specified period length
+
+        if split_long_periods:
+            split_periods = []
+            for start, end in periods:
+                duration = (end - start).total_seconds() / 3600
+                if duration > period_len:
+                    # Split into smaller periods
+                    num_splits = int(duration // period_len)
+                    for i in range(num_splits):
+                        split_start = start + pd.Timedelta(hours=i * period_len)
+                        split_end = start + pd.Timedelta(hours=(i + 1) * period_len)
+                        split_periods.append((split_start, split_end))
+                else:
+                    split_periods.append((start, end))
+            periods = split_periods
+
         time_filter += time.time() - start_time
 
         results[col] = periods
@@ -97,7 +119,7 @@ def find_fuzzy_periods(df, threshold=0.1, period_len=7 * 24, tol=0):
     return results
 
 
-def get_dunkelflaute_results(df, thresholds, period_lenghts):
+def get_dunkelflaute_results(df, thresholds, period_lenghts, split_long_periods=False):
     """
     Get the dunkelflaute results for a given dataframe, thresholds and period lengths.
     The results are stored in a dictionary with the following structure:
@@ -126,7 +148,10 @@ def get_dunkelflaute_results(df, thresholds, period_lenghts):
                 f"Found periods for threshold={threshold}, min. period length={period_len}"
             )
             result[threshold][period_len] = find_fuzzy_periods(
-                df, threshold=threshold, period_len=period_len
+                df,
+                threshold=threshold,
+                period_len=period_len,
+                split_long_periods=split_long_periods,
             )
 
     return result
