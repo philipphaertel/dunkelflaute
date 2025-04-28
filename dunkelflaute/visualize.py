@@ -267,6 +267,9 @@ def plot_dunkelflaute_contour(results, cap_mix, period_lengths, thresholds, no_y
     """
     Create a contour plot showing the frequency of dunkelflaute events.
 
+    Inspired by the work of:
+    https://repository.tudelft.nl/file/File_9f0c989b-3d52-41cb-948f-f2723396397e
+
     Parameters:
     - results: Dictionary containing dunkelflaute results.
     - cap_mix: Capacity mix ratio (e.g., 0.5 for 50% wind, 50% solar).
