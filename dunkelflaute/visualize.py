@@ -245,3 +245,78 @@ def plot_period_solar_wind_performance(
         fig,
         f"period_solar_wind_performance_{cap_mix}_{threshold}_{period_len}.svg",
     )
+
+
+def plot_dunkelflaute_contour(results, cap_mix, period_lengths, thresholds, no_years):
+    """
+    Create a contour plot showing the frequency of dunkelflaute events.
+
+    Parameters:
+    - results: Dictionary containing dunkelflaute results.
+    - cap_mix: Capacity mix ratio (e.g., 0.5 for 50% wind, 50% solar).
+    - period_lengths: List of period lengths (in hours).
+    - thresholds: List of cap. factor thresholds.
+    - no_years: Number of years in the dataset.
+    """
+
+    x = np.array([p / 24 for p in period_lengths])  # Convert period lengths to days
+    y = np.array(thresholds)
+    z = np.zeros((len(y), len(x)))
+
+    # Populate the z matrix with the frequency of dunkelflaute events
+    for i, threshold in enumerate(thresholds):
+        for j, period_len in enumerate(period_lengths):
+            z[i, j] = (
+                len(
+                    results[threshold][period_len][f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"]
+                )
+                / no_years
+            )
+
+    if False:  # Set to True to debug
+        print(f"Min: {z.min()}, Max: {z.max()}")
+        print(f"z-matrix saved to z_matrix.csv")
+        np.savetxt("z_matrix.csv", z, delimiter=",")
+
+    # Set levels for contour plot
+    min_non_zero = np.min(z[z > 0])
+    min_non_zero_lvl = np.floor(min_non_zero * 100) / 100
+    max_lvl = np.ceil(z.max() * 100) / 100
+    levels = [
+        min_non_zero_lvl,
+        0.2,
+        0.5,
+        1,
+        2,
+        5,
+        10,
+        20,
+        50,
+        100,
+        max_lvl,
+    ]
+    levels = [l for l in levels if l <= max_lvl and l >= min_non_zero_lvl]
+
+    cmap = plt.get_cmap("RdYlBu")
+    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+
+    # Create the contour plot
+    fig = create_new_figure()
+    ax = fig.add_subplot(111)
+    contour = ax.contourf(x, y, z, levels=levels, cmap=cmap, norm=norm)
+
+    # Add colorbar
+    cbar = plt.colorbar(contour)
+    cbar.set_label("Events / year")
+    cbar.set_ticks(levels)
+    cbar.set_ticklabels([str(l) for l in levels])
+
+    # Add labels and title
+    ax.set_title(f"Dunkelflaute events for Wind: {cap_mix} Solar: {1-cap_mix}")
+    ax.set_xlabel("> Period length (Days)")
+    ax.set_ylabel("Capacity factor threshold")
+    ax.grid()
+
+    # Save the figure
+    plt.tight_layout()
+    save_figure(fig, f"dunkelflaute_contour_{cap_mix}.svg")
