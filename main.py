@@ -5,6 +5,8 @@ from dunkelflaute.visualize import (
     plot_period_ts_data,
     plot_period_solar_wind_performance,
     plot_dunkelflaute_contour,
+    plot_dunkelflaute_seasonality,
+    plot_dunkelflaute_seasonality_horizontal,
 )
 
 
@@ -78,18 +80,44 @@ def main():
     )
 
     # Visualize results
+    cap_mix_plot = 0.5  # if not using the full range
+
     plot_dunkelflaute_events(
         results, df_total_production, cap_mix_range, thresholds, period_lengths
     )
     # Plot the dunkelflaute events for a given capacity mix, threshold, period length of interest
-    plot_period_ts_data(results, df_total_production, 0.5, 0.35, 7 * 24)
+    plot_period_ts_data(results, df_total_production, cap_mix_plot, 0.35, 7 * 24)
 
     # Plot the solar and wind performance for a given capacity mix, threshold, period length of interest
     plot_period_solar_wind_performance(
-        results, df_wind_solar, 0.75, 0.35, [7 * 24, 10 * 24, 14 * 24]
+        results, df_wind_solar, cap_mix_plot, 0.35, [7 * 24, 10 * 24, 14 * 24]
     )
 
-    plot_dunkelflaute_contour(results, 0.5, period_lengths, thresholds, no_years)
+    plot_dunkelflaute_contour(
+        results, cap_mix_plot, period_lengths, thresholds, no_years
+    )
+
+    # Plot seasonality by month
+    plot_dunkelflaute_seasonality(
+        results, thresholds, 7 * 24, cap_mix_plot, no_years, time_unit="month"
+    )
+
+    # Plot seasonality by season
+    plot_dunkelflaute_seasonality(
+        results, thresholds, 7 * 24, cap_mix_plot, no_years, time_unit="season"
+    )
+    plot_dunkelflaute_seasonality_horizontal(
+        results, thresholds, 7 * 24, cap_mix_plot, no_years, time_unit="season"
+    )
+    plot_dunkelflaute_seasonality_horizontal(
+        results,
+        thresholds,
+        7 * 24,
+        cap_mix_plot,
+        no_years,
+        abs_rel="relative",
+        time_unit="season",
+    )
 
 
 if __name__ == "__main__":
