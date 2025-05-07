@@ -339,3 +339,166 @@ def plot_dunkelflaute_contour(results, cap_mix, period_lengths, thresholds, no_y
     # Save the figure
     plt.tight_layout()
     save_figure(fig, f"dunkelflaute_contour_{cap_mix}.svg")
+
+
+def plot_dunkelflaute_seasonality(
+    results, thresholds, period_len, cap_mix, no_years, time_unit="month"
+):
+    """
+    Plot the seasonality of Dunkelflaute events (e.g., by month or season).
+
+    Parameters:
+    - results: Dictionary containing Dunkelflaute results.
+    - thresholds: List of capacity factor thresholds.
+    - period_len: List of period lengths (in hours).
+    - cap_mix: Capacity mix ratio (e.g., 0.5 for 50% wind, 50% solar).
+    - time_unit: "month" or "season" to group events by month or season.
+    """
+    # Initialize a DataFrame to store event counts
+    if time_unit == "month":
+        event_counts = pd.DataFrame(0, index=range(1, 13), columns=thresholds)
+    elif time_unit == "season":
+        event_counts = pd.DataFrame(
+            0, index=["Winter", "Spring", "Summer", "Autumn"], columns=thresholds
+        )
+
+    # Iterate through thresholds and period lengths
+    for threshold in thresholds:
+        # Get the start times of Dunkelflaute events
+        events = results[threshold][period_len][f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"]
+        for start, _ in events:
+            if time_unit == "month":
+                event_counts.loc[start.month, threshold] += 1
+            elif time_unit == "season":
+                # Map months to seasons: Winter (12, 1, 2), Spring (3, 4, 5), Summer (6, 7, 8), Autumn (9, 10, 11)
+                season = (
+                    start.month % 12 + 3
+                ) // 3  # Map months to seasons (1=Winter, 2=Spring, etc.)
+                season_name = ["Winter", "Spring", "Summer", "Autumn"][season - 1]
+                event_counts.loc[season_name, threshold] += 1
+
+    # Plot the results
+    fig = create_new_figure()
+    ax = fig.add_subplot(111)
+    event_counts.plot(kind="bar", ax=ax, colormap="viridis", alpha=0.8)
+
+    event_counts = event_counts.div(no_years)  # Normalize by number of years
+
+    # Add labels and title
+    ax.set_title(
+        f"Dunkelflaute Events by {time_unit.capitalize()} for Wind: {cap_mix} Solar: {1-cap_mix} for period length {period_len/24} days"
+    )
+    ax.set_xlabel(time_unit.capitalize())
+    ax.set_ylabel("Number of observed Dunkelflaute events (# of events per year)")
+    ax.legend(title="Thresholds")
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Save the figure
+    save_figure(fig, f"dunkelflaute_seasonality_{cap_mix}_{time_unit}.svg")
+
+
+def plot_dunkelflaute_seasonality_horizontal(
+    results,
+    thresholds,
+    period_len,
+    cap_mix,
+    no_years,
+    abs_rel="absolute",
+    time_unit="season",
+):
+    """
+    Plot the seasonality of Dunkelflaute events as stacked horizontal bars.
+
+    Parameters:
+    - results: Dictionary containing Dunkelflaute results.
+    - thresholds: List of capacity factor thresholds.
+    - period_len: Period lengths (in hours).
+    - cap_mix: Capacity mix ratio (e.g., 0.5 for 50% wind, 50% solar).
+    - no_years: Number of years in the dataset (for normalization).
+    - abs_rel: "absolute" or "relative" to indicate the type of normalization.
+    - time_unit: "season" (default) to group events by season.
+    """
+    if time_unit != "season":
+        raise ValueError("This function only supports 'season' as the time unit.")
+
+    # Define consistent colors for each season
+    season_colors = {
+        "Winter": "blue",
+        "Spring": "green",
+        "Summer": "orange",
+        "Autumn": "red",
+    }
+
+    # Initialize a DataFrame to store event counts
+    event_counts = pd.DataFrame(
+        0, index=["Winter", "Spring", "Summer", "Autumn"], columns=thresholds
+    )
+
+    # Iterate through thresholds and period lengths
+    for threshold in thresholds:
+        # Get the start times of Dunkelflaute events
+        events = results[threshold][period_len][f"w{cap_mix:2.2f}_s{1-cap_mix:2.2f}"]
+        for start, _ in events:
+            # Map months to seasons: Winter (12, 1, 2), Spring (3, 4, 5), Summer (6, 7, 8), Autumn (9, 10, 11)
+            season = (start.month % 12 + 3) // 3  # Map months to seasons
+            season_name = ["Winter", "Spring", "Summer", "Autumn"][season - 1]
+            event_counts.loc[season_name, threshold] += 1
+
+    if abs_rel == "absolute":
+        # Normalize by the number of years
+        event_counts = event_counts.div(no_years)
+    elif abs_rel == "relative":
+        # Normalize by the total number of events
+        event_counts = event_counts.div(event_counts.sum(axis=0), axis=1) * 100
+
+    # Plot the results as stacked horizontal bars
+    fig = create_new_figure()
+    ax = fig.add_subplot(111)
+
+    # Create stacked horizontal bars
+    for i, threshold in enumerate(thresholds):
+        bottom = 0  # Initialize the bottom of the stack for each threshold
+        for season in event_counts.index:
+            if event_counts.loc[season, threshold] > 0:
+                # Plot the horizontal bar for each season
+                ax.barh(
+                    i,
+                    event_counts.loc[season, threshold],
+                    left=bottom,
+                    color=season_colors[season],  # Use consistent color for each season
+                    label=(
+                        season if i == len(thresholds) - 1 else None
+                    ),  # Add legend only once
+                    alpha=0.8,
+                    height=0.8,
+                )
+                # Add number of events on the bar
+                ax.text(
+                    bottom + event_counts.loc[season, threshold] / 2,
+                    i,
+                    f"{event_counts.loc[season, threshold]:.1f}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    color="white",
+                )
+                bottom += event_counts.loc[
+                    season, threshold
+                ]  # Update the bottom for the next stack
+
+    # Add labels and title
+    ax.set_title(
+        f"Dunkelflaute Events by Season for Wind: {cap_mix} Solar: {1-cap_mix}  for period length {period_len/24} days"
+    )
+    ax.set_yticks(range(len(thresholds)))
+    ax.set_yticklabels(thresholds)
+    if abs_rel == "absolute":
+        ax.set_xlabel("Number of observed Dunkelflaute events (per year)")
+    elif abs_rel == "relative":
+        ax.set_xlabel("Share of observed Dunkelflaute events (relative to total)")
+    ax.set_ylabel("Threshold")
+    ax.legend(title="Seasons", loc="lower right")
+    ax.grid(axis="x", linestyle="--", alpha=0.7)
+
+    # Save the figure
+    save_figure(fig, f"dunkelflaute_seasonality_horizontal_{cap_mix}_{abs_rel}.svg")
